@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits } from 'discord.js';
+import { Client, GatewayIntentBits, Options } from 'discord.js';
 import ArchiveCommand from './commands/ArchiveCommand';
 import NewCTFCommand from './commands/NewCTFCommand';
 import NewChallCommand from './commands/NewChallCommand';
@@ -26,15 +26,19 @@ const clientOptions = {
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
   ],
-  // Add production optimizations
-  makeCache: isProduction ? { maxSize: 200 } : undefined,
-  // Reduce sweeping in production for better performance
-  sweepers: isProduction ? {
-    messages: {
-      interval: 3600, // 1 hour
-      lifetime: 7200  // 2 hours
+  // Add production optimizations using the Options factory
+  ...(isProduction && {
+    makeCache: Options.cacheWithLimits({ 
+      MessageManager: 200,
+      PresenceManager: 0,
+    }),
+    sweepers: {
+      messages: {
+        interval: 3600, // 1 hour
+        lifetime: 7200  // 2 hours
+      }
     }
-  } : undefined
+  })
 };
 
 const client = new Client(clientOptions);
