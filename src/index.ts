@@ -14,13 +14,30 @@ import VersionCommand from './commands/VersionCommand';
 import UnsolveCommand from './commands/UnsolveCommand';
 import fuzzyMatch from './utils/fuzzyMatch';
 
-const client = new Client({
+const isProduction = process.env.NODE_ENV === 'production';
+
+// Log startup environment
+console.log(`Starting Meister bot in ${isProduction ? 'production' : 'development'} mode`);
+
+// Configure client with appropriate options based on environment
+const clientOptions = {
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
   ],
-});
+  // Add production optimizations
+  makeCache: isProduction ? { maxSize: 200 } : undefined,
+  // Reduce sweeping in production for better performance
+  sweepers: isProduction ? {
+    messages: {
+      interval: 3600, // 1 hour
+      lifetime: 7200  // 2 hours
+    }
+  } : undefined
+};
+
+const client = new Client(clientOptions);
 
 if (!adminRoleID) {
   console.error('ADMIN_ROLE_ID is not defined in your environment variables.');
@@ -47,7 +64,8 @@ commands.push(new HelpCommand(client, null, commands));
 const commandNames = commands.map((command) => command.commandName);
 
 client.once('ready', () => {
-  console.log('Meister is ready!');
+  console.log(`Meister is ready! (Version: ${require('../package.json').version})`);
+  console.log(`Logged in as ${client.user?.tag}`);
 });
 
 client.on('messageCreate', (message) => {
@@ -84,6 +102,19 @@ client.on('messageCreate', (message) => {
     response += ` Did you mean: \`${matches.join('`, `')}\`?`;
   }
   message.reply(response);
+});
+
+// Add graceful shutdown handlers
+process.on('SIGINT', () => {
+  console.log('Received SIGINT. Bot is shutting down...');
+  client.destroy();
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  console.log('Received SIGTERM. Bot is shutting down...');
+  client.destroy();
+  process.exit(0);
 });
 
 client.login(botToken).catch(console.error);
