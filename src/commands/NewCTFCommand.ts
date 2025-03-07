@@ -1,4 +1,4 @@
-import { Guild } from 'discord.js';
+import { EmbedBuilder, Guild, MessageCreateOptions, TextChannel } from 'discord.js';
 import { prefix } from '../const';
 import { ValidMemberMessage } from '../utils/validateMessage';
 import Command from './BaseCommand';
@@ -41,7 +41,88 @@ class NewCTFCommand extends Command {
     });
     channel.setTopic(topic);
 
+    // Send a formatted message in the discussion channel with CTF information
+    await this.sendCtfInfoMessage(message, channel, categoryName, ctfUrl, ctfUsername, ctfPassword);
+
     message.reply(`New CTF \`${category.name}\` created: ${channel.ref}`);
+  }
+
+  /**
+   * Creates and sends a formatted message with CTF information in the given channel
+   * 
+   * @param message Original message to get client access
+   * @param channel The channel to send the message in
+   * @param ctfName The name of the CTF
+   * @param ctfUrl The URL of the CTF
+   * @param ctfUsername The username for the CTF
+   * @param ctfPassword The password for the CTF
+   */
+  async sendCtfInfoMessage(
+    message: ValidMemberMessage,
+    channel: CtfChannel,
+    ctfName: string,
+    ctfUrl?: string,
+    ctfUsername?: string,
+    ctfPassword?: string,
+  ): Promise<void> {
+    // Create an embed with CTF details
+    const embed = new EmbedBuilder()
+      .setDescription(
+        `# 🚩 ${ctfName} 🚩\n\n` +
+        '**Instructions**\n' +
+        '1. Create a personal account on the CTF platform\n' +
+        '2. Enter the team credentials below to join the team'
+      )
+      .setColor('#2986fb');
+    
+      const fields = [];
+    
+    if (ctfUrl) {
+      fields.push({ 
+        name: '🌐 **Website**', 
+        value: `${ctfUrl}`, 
+        inline: false 
+      });
+    }
+    
+    if (ctfUsername) {
+      fields.push({ 
+        name: '👤 **Team Login**', 
+        value: `\`${ctfUsername}\``, 
+        inline: true 
+      });
+    }
+    
+    if (ctfPassword) {
+      fields.push({ 
+        name: '🔑 **Password**', 
+        value: `\`${ctfPassword}\``, 
+        inline: true 
+      });
+    }
+    
+    fields.push({
+      name: '🛠️ **Useful Commands**',
+      value: 
+        `• \`${prefix} new chall <name>\` - Create a challenge channel\n` +
+        `• \`${prefix} solve <flag>\` - Mark a challenge as solved\n` +
+        `• \`${prefix} help\` - List all available commands`,
+      inline: false
+    });
+    
+    embed.addFields(fields);
+    
+    embed.setFooter({ 
+      text: 'Happy hacking and remember to write down your progress in the challenge channel!' 
+    });
+    
+    // Get the channel ID from the channel reference and send the message
+    const channelId = channel.ref.replace('<#', '').replace('>', '');
+    const textChannel = await message.guild.channels.fetch(channelId) as TextChannel;
+    
+    if (textChannel) {
+      await textChannel.send({ embeds: [embed] });
+    }
   }
 
   createTopicString(topic: Record<string, string>): string {

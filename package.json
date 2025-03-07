@@ -1,6 +1,6 @@
 {
   "name": "meister-bot",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "type": "commonjs",
   "description": "The bot used in our Discord during CTFs.",
   "main": "index.js",
